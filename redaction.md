@@ -13,9 +13,9 @@ Cette mission a été conduite dans le cadre de l'amélioration continue de la s
 
 ### 1.3 PILOTAGE DE LA PRESTATION
 
-- **Client :** [Nom de l’organisation]
-- **Équipe d’audit :** [Noms ou société]
-- **Période de l’audit :** [Dates exactes]
+- **Client :** Mr Robin
+- **Équipe d’audit :** Ryan Rais Mehdi Lacher
+- **Période de l’audit :** 10-19/10/2025
 - **Méthodologie :** Basée sur l’OWASP Testing Guide v4, les recommandations de l’ANSSI, et les benchmarks CIS applicables.
 
 ### 1.4 ACTIONS DE NETTOYAGE RECOMMANDÉES
@@ -616,7 +616,7 @@ Conséquences :
 - Perturbation massive : tous les comptes peuvent être désactivés ("active": "0"), rendant le service inutilisable.
 - Exfiltration ou destruction de données personnelles sensibles.
 
-##### Compromision du compte Jdoe
+###### 5.2 Compromision du compte Jdoe
 
 Une vulnérabilité de type **XSS (Cross-Site Scripting)** a été identifiée sur la page FAQ.  
 Celle-ci permet à un attaquant d’injecter et d’exécuter du code JavaScript malveillant dans le navigateur d’un utilisateur authentifié.  
@@ -669,7 +669,39 @@ Usurpation de session :
 - Mettre en œuvre des tests automatisés XSS avec ZAP/Burp.
 - Ajouter des filtres WAF pour bloquer les scripts injectés.
 
-##### SQL Injection
+
+
+
+
+##### 6 Gestion des sessions
+
+###### 6.1 Cookies non sécurisé ( a refaire MEHDI)
+
+Après avoir analysé le cookie de session PHP, nous avons remarqué que les
+attributs de sécurité “Secure”, “HTTP-Only” et “Domain” sont manquants.
+“Secure” force le cookie à passer uniquement par le protocole sécurisé HTTPS, il
+n'est donc jamais envoyé en clair.
+“HTTP-Only” protège contre le vol de cookie lors d’une attaque de type XSS.
+“Domain” vérifie si le domaine du site est bien celui inscrit dans le cookie afin
+d’éviter sa récupération par un tiers malveillant.
+Remédiation : Mettre en place les attributs de sécurité ci-dessus au cookie
+PHPSESSID. De plus, il faudrait générer un nouveau cookie après s’être
+authentifié et le supprimer après la déconnexion
+
+##### 7 Validations des entrées utilisateurs
+
+###### 7.1 Injection de commandes 
+sur la page :
+
+![alt text](src/image-2.png)
+
+on peut voir dans l'url un **terms.html**
+si on remplace ce dernier par une commande avec un point virgule au début
+![alt text](src/image-4.png)
+on peut injecter des commandes 
+
+
+###### 7.2 SQL Injection
 ```bash
 sqlmap -u "https://hackazon.trackflaw.com/product/view?id=64%67" -D hackazon -T tbl_users -C username,password --dump
         ___
@@ -743,18 +775,9 @@ Table: tbl_users
 ```
 ici la vulérabilité est critique car un user qui n'est meme pas connecté peut avoir le hash des users critiques comme l'admin et listez tout les users
 
-##### Injection de commande
 
 
 
-sur la page 
-
-![alt text](src/image-2.png)
-
-on peut voir dans l'url un **terms.html**
-si on remplace ce dernier par une commande avec un point virgule au début
-![alt text](src/image-4.png)
-on peut injecter des commandes 
 ###### LFI
 
 ![alt text](src/image-3.png)
