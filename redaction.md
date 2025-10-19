@@ -1,11 +1,53 @@
 # RAPPORT D’ÉVALUATION DE SÉCURITÉ – SITE WEB HACKATHON
 
+![alt text](image-7.png)
+
 
 **Confidentiel – Diffusion restreinte**
 **Version :** 1.2 (technique enrichie)
 **Date :** 19/10/2025
 
 ---
+## Sommaire
+
+1. PRÉAMBULE  
+   1.1 Présentation des résultats  
+   1.2 Contexte  
+   1.3 Pilotage de la prestation  
+   1.4 Actions de nettoyage recommandées  
+
+2. SYNTHÈSE MANAGÉRIALE  
+   2.1 Synthèse générale  
+   2.2 Synthèse des risques  
+   2.3 Synthèse des vulnérabilités et recommandations  
+   2.4 Remarques  
+
+3. SYNTHÈSE TECHNIQUE  
+   - Technologies détectées  
+   - Serveur cible et portée du test  
+
+4. TEST D’INTRUSION EXTERNE ET APPLICATIF  
+   4.1 Évaluation infrastructure  
+      4.1.1 Réseau  
+      4.1.2 Services  
+   4.2 Application web  
+      4.2.1 Collecte d’informations  
+      4.2.2 Configuration et mécanismes de déploiement  
+      4.2.3 Gestion des identités  
+      4.2.4 Authentification  
+      4.2.5 Autorisation  
+      4.2.6 Gestion des sessions  
+      4.2.7 Validation des entrées utilisateur  
+      4.2.8 Gestion des erreurs  
+      4.2.9 Cryptographie  
+      4.2.10 Processus métier  
+      4.2.11 Côté client  
+
+5. ANNEXES  
+   5.1 Présentation de la démarche  
+   5.2 Présentation des résultats  
+   5.3 Terminologie des risques  
+
 
 ## 1. PRÉAMBULE
 
@@ -21,8 +63,8 @@ Mission réalisée dans le cadre d’un test d’intrusion externe + revue appli
 
 ### 1.3 PILOTAGE DE LA PRESTATION
 
-* **Client :** Mr Robin
-* **Équipe :** Ryan Rais, Mehdi Lacher
+* **Client :** ESGI
+* **Équipe :** Ryan Rais, Mehdi Laacher
 * **Méthodologie :** OWASP Testing Guide v4, ANSSI, CIS Benchmarks.
 * **Outils :** Nmap, dirsearch, Burp Suite, OWASP ZAP, sqlmap, hydra, ffuf, curl, jq.
 
@@ -305,7 +347,7 @@ Le Swagger peut être importé dans des outils comme Postman, Burp Suite, ZAP, I
 4 - Absence de cloisonnement entre environnements :
 Si le même Swagger est déployé sur les environnements de test et de production, il peut révéler des endpoints internes ou non encore sécurisés.
 
-🔧 **Recommandation :**
+**Recommandation :**
 - Garder ce fichier coté backend ne surtout pas le mettre en publique
 
 ##### 2. Configuration et mécanismes de déploiement
@@ -338,7 +380,7 @@ pragma: no-cache
 Ces en-têtes exposent notamment le type de serveur web (**Nginx**) ainsi que la version du moteur PHP (**5.6.40**).  
 Ces informations, bien que non sensibles à elles seules, peuvent être exploitées par un attaquant pour **identifier des vulnérabilités connues** associées à ces versions ou cibler des exploits spécifiques, facilitant ainsi des attaques ultérieures.
 
-🔧 **Recommandation :**
+**Recommandation :**
 Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquants (HSTS, CSP, XFO, etc.) et masquer les informations techniques (Server, X-Powered-By) en désactivant server_tokens et expose_php.
 
 ##### 3. Gestion des identités
@@ -369,7 +411,7 @@ Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquant
   - La création de comptes en masse (spam, bots).
   - Un manque de traçabilité.
 
-🔧 **Recommandation :**
+**Recommandation :**
 - Mettre en place une **vérification par lien unique** envoyé à l’email fourni.
 - Refuser les inscriptions tant que le lien n’a pas été validé.
 
@@ -387,7 +429,7 @@ Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquant
   - ❌ **Mais pas son mot de passe ni son email**
 - Cela empêche l’utilisateur de renforcer la sécurité de son compte ou de corriger une fuite potentielle.
 
-🔧 **Recommandation :**
+**Recommandation :**
 - Ajouter une **fonctionnalité de modification du mot de passe** dans l’espace utilisateur, avec confirmation par mot de passe actuel.
 
 ---
@@ -404,7 +446,7 @@ Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquant
   - `motdepasse`, `12345`, `azerty`, etc.
 - Cela facilite les attaques par force brute ou par dictionnaire.
 
-🔧 **Recommandation :**
+**Recommandation :**
 - Implémenter une **politique de mot de passe conforme aux recommandations de l’ANSSI** :
   - Minimum 12 caractères
   - Inclusion de majuscules, minuscules, chiffres et caractères spéciaux
@@ -413,7 +455,7 @@ Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquant
 
 lors de la création du compte 
 
-🔍 Exploitation d’un compte via l’analyse du Swagger
+Exploitation d’un compte via l’analyse du Swagger
  
  ![alt text](src/image-1.png)
 
@@ -510,7 +552,7 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2025-10-18 04:10:
 Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2025-10-18 04:11:00
 
 ```
-🔧 **Recommandation :**
+**Recommandation :**
 Mettre en place une protection anti‑bruteforce sur la page de connexion en limitant le nombre de tentatives (rate limiting, délai progressif ou CAPTCHA) et en journalisant les échecs d’authentification pour détecter les attaques répétées.
 
 ---
@@ -703,7 +745,7 @@ Conséquences :
 - Exfiltration ou destruction de données personnelles sensibles.
 
 
-**🛠️ Recommandations**
+**Recommandations**
 Mettre en œuvre un contrôle d'accès strict côté serveur pour vérifier que l'utilisateur authentifié est autorisé à accéder ou modifier uniquement ses propres ressources, en validant systématiquement son identité via des vérifications d’ownership (user ID/token).
 
 ###### 5.2 Compromision du compte Jdoe
@@ -743,7 +785,7 @@ Usurpation de session :
 - Il l’ajoute dans l’onglet Application > Cookies de son navigateur.
 - En rechargeant la page, il est connecté en tant que John Doe.
 
-💥 Impact
+**Impact**
 
 - Usurpation d’identité (John Doe)
 - Prise de contrôle de session sans authentification
@@ -751,13 +793,13 @@ Usurpation de session :
 - Actions au nom de l’utilisateur ciblé (ex : commandes, modification de profil)
 - Si la victime est admin → compromission totale de l’application
 
-⚙️ Cause technique
+**Cause technique**
 
 - Absence d’encodage et de filtrage des entrées utilisateur sur la page FAQ.
 - Le champ vulnérable renvoie du contenu directement dans le DOM sans validation.
 - Les cookies ne sont pas marqués comme HttpOnly, donc accessibles via JavaScript.
 
-🛠️ Recommandations
+**Recommandations**
 
 - Échapper toutes les entrées utilisateur (htmlspecialchars, escape()…)
 - Implémenter une CSP (Content Security Policy) restrictive.
@@ -807,16 +849,16 @@ si on remplace ce dernier par une commande avec un point virgule au début
 ![alt text](src/image-4.png)
 on peut injecter des commandes 
 
-**🛠️ Recommandations**
+**Recommandations**
 
-- ✅ Ne jamais exécuter directement des entrées utilisateur dans une commande système (ex: `system()`, `exec()`, `shell_exec()`).
-- ✅ Utiliser des fonctions sécurisées avec échappement automatique (ex: `escapeshellarg()` ou `proc_open()` avec contrôle strict).
-- ✅ Implémenter une **liste blanche** de fichiers accessibles (ex: `terms.html`, `about.html`) sans concaténation directe.
-- ✅ Vérifier systématiquement que les valeurs passées dans l’URL ne contiennent aucun caractère spécial (`;`, `&`, `|`, etc.).
-- ✅ Utiliser des ID internes ou des alias (ex: `?page=terms` → serveur mappe en interne vers un fichier statique).
-- ✅ Séparer clairement les fichiers statiques consultables des scripts exécutables dans l'arborescence du serveur.
-- 🔐 Restreindre les permissions du serveur web (ex: `www-data`) pour limiter les dégâts d’une éventuelle exécution.
-- 🧪 Mettre en place des tests de fuzzing et de validation côté serveur pour détecter les vecteurs d'injection.
+- Ne jamais exécuter directement des entrées utilisateur dans une commande système (ex: `system()`, `exec()`, `shell_exec()`).
+- Utiliser des fonctions sécurisées avec échappement automatique (ex: `escapeshellarg()` ou `proc_open()` avec contrôle strict).
+- Implémenter une **liste blanche** de fichiers accessibles (ex: `terms.html`, `about.html`) sans concaténation directe.
+- Vérifier systématiquement que les valeurs passées dans l’URL ne contiennent aucun caractère spécial (`;`, `&`, `|`, etc.).
+- Utiliser des ID internes ou des alias (ex: `?page=terms` → serveur mappe en interne vers un fichier statique).
+- Séparer clairement les fichiers statiques consultables des scripts exécutables dans l'arborescence du serveur.
+- Restreindre les permissions du serveur web (ex: `www-data`) pour limiter les dégâts d’une éventuelle exécution.
+- Mettre en place des tests de fuzzing et de validation côté serveur pour détecter les vecteurs d'injection.
 
 
 
@@ -912,13 +954,13 @@ on peut également craquer le hash admin .
 
 **Remediation**
 
-- ✅ Utiliser des requêtes **paramétrées** (prepared statements) avec des bibliothèques sécurisées comme PDO (PHP), `mysqli`, SQLAlchemy (Python), etc.
-- ✅ Ne **jamais concaténer directement** des entrées utilisateur dans une requête SQL.
-- ✅ Valider et filtrer les données côté serveur : s'assurer que les types attendus sont strictement respectés (`int`, `email`, etc.).
-- ✅ Restreindre les droits SQL : l'utilisateur base de données utilisé par l'application ne doit jamais avoir de droits `DROP`, `DELETE *`, etc.
-- ✅ Activer le **logging des erreurs SQL** côté serveur (sans les afficher à l'utilisateur).
-- ✅ Mettre en place un **WAF** ou des règles de détection pour intercepter les requêtes malformées (mod_security, etc.).
-- 🧪 Effectuer des tests automatisés avec **sqlmap**, ZAP ou Burp Suite pour identifier et corriger les points d’injection.
+- Utiliser des requêtes **paramétrées** (prepared statements) avec des bibliothèques sécurisées comme PDO (PHP), `mysqli`, SQLAlchemy (Python), etc.
+- Ne **jamais concaténer directement** des entrées utilisateur dans une requête SQL.
+- Valider et filtrer les données côté serveur : s'assurer que les types attendus sont strictement respectés (`int`, `email`, etc.).
+- Restreindre les droits SQL : l'utilisateur base de données utilisé par l'application ne doit jamais avoir de droits `DROP`, `DELETE *`, etc.
+- Activer le **logging des erreurs SQL** côté serveur (sans les afficher à l'utilisateur).
+- Mettre en place un **WAF** ou des règles de détection pour intercepter les requêtes malformées (mod_security, etc.).
+- Effectuer des tests automatisés avec **sqlmap**, ZAP ou Burp Suite pour identifier et corriger les points d’injection.
 
 
 
@@ -940,14 +982,14 @@ On met le caractère `%00` (null byte) pour faire une **troncation d'extension**
 
 🛠️ Recommandations de remédiation :
 
-1. ✅ **Ne jamais inclure des chemins ou noms de fichiers fournis directement par l’utilisateur.**
-2. 🧱 Utiliser une **liste blanche** des fichiers accessibles (`faq.html`, `help1.html`, etc.).
-3. 🔐 Empêcher la navigation vers des chemins système :
+1. **Ne jamais inclure des chemins ou noms de fichiers fournis directement par l’utilisateur.**
+2. Utiliser une **liste blanche** des fichiers accessibles (`faq.html`, `help1.html`, etc.).
+3. Empêcher la navigation vers des chemins système :
    - Bloquer les séquences comme `../`, `/etc/`, `%00`, `..%2F`, etc.
    - Vérifier le chemin résolu avec `realpath()` pour s'assurer qu’il reste dans un répertoire autorisé.
-4. 🛑 Empêcher les extensions automatiques ou inclure uniquement des fichiers statiques HTML dans un répertoire verrouillé.
-5. 🔒 Configurer le serveur web pour qu’il **n'affiche jamais le contenu de fichiers système** (restrictions d’accès via Nginx/Apache).
-6. 🪪 Mettre en place des **journaux d’audit** pour détecter toute tentative d’accès à des fichiers non autorisés.
+4. Empêcher les extensions automatiques ou inclure uniquement des fichiers statiques HTML dans un répertoire verrouillé.
+5. Configurer le serveur web pour qu’il **n'affiche jamais le contenu de fichiers système** (restrictions d’accès via Nginx/Apache).
+6. Mettre en place des **journaux d’audit** pour détecter toute tentative d’accès à des fichiers non autorisés.
 
 
 
@@ -1073,7 +1115,7 @@ On peut par la suite via notre shell y mettre des commandes :
 
 on peut meme y mettre un reverse shell grace a netcat pour avoir un accès complet avec l'user **www-data**
 
-🛠️ Recommandations de remédiation immédiate :
+Recommandations de remédiation immédiate :
   Mesure	Détail
   Filtrage des types MIME	Vérifier le type réel avec finfo_file() ou file (ne pas se fier au champ Content-Type).
   Vérification d’extension	N’autoriser que .jpg, .jpeg, .png, .gif.
@@ -1093,7 +1135,7 @@ dés qu'on se connecte :
 
 ![alt text](src/image-9.png)
 
-**🛠️ Recommandations de remédiation immédiate :**
+**Recommandations de remédiation immédiate :**
 
 - N’accepter que des chemins relatifs, pas d’URL complètes.
 - Utiliser une liste blanche de domaines/URLs autorisées.
@@ -1112,7 +1154,8 @@ dés qu'on se connecte :
 
 ##### 11. Côté client
 
-X
+Pas de vunvérabilités spécifiques coté client .
+
 ---
 
 ## 5. ANNEXE
@@ -1125,7 +1168,7 @@ L’évaluation a été réalisée selon une méthode basée sur les standards s
 - **CIS Benchmarks**
 - **ANSSI – Guide d’hygiène informatique**
 
-Type de test : **boîte noire + grise**  
+Type de test : **boîte noire**  
 Outils utilisés : Nmap, Nikto, Burp Suite, OWASP ZAP, sqlmap, ffuf
 
 ### 5.2 PRÉSENTATION DES RÉSULTATS
@@ -1161,8 +1204,8 @@ Outils utilisés : Nmap, Nikto, Burp Suite, OWASP ZAP, sqlmap, ffuf
 
 ### 5.3 TERMINOLOGIE DES RISQUES
 
-- **Critique** : Exploitation immédiate avec fort impact (accès admin, base de données compromise)
-- **Moyenne** : Risque modéré, nécessite combinaison ou conditions particulières
-- **Faible** : Failles de configuration ou de bonnes pratiques
-
+- **Critique** :  Exploitation immédiate et triviale, impact majeur sur la confidentialité, l’intégrité ou la disponibilité (ex. exécution de code à distance, compromission complète du système, accès administrateur).
+- **Élevé** : Vulnérabilité facilement exploitable ou combinable, entraînant un accès non autorisé, une fuite de données sensibles ou une compromission partielle du système.
+- **Moyenne** : Vulnérabilité nécessitant des conditions spécifiques ou une exploitation combinée avec d’autres failles pour être efficace, avec un impact limité ou localisé.
+- **Faible** : Failles mineures de configuration, d’exposition d’informations ou de bonnes pratiques, avec un impact faible ou difficilement exploitable
 ---
