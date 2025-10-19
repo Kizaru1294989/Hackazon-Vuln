@@ -775,10 +775,11 @@ Table: tbl_users
 ```
 ici la vulérabilité est critique car un user qui n'est meme pas connecté peut avoir le hash des users critiques comme l'admin et listez tout les users
 
+on peut craquer le hash admin .
 
 
 
-###### LFI
+###### 7.3 LFI
 
 ![alt text](src/image-3.png)
 
@@ -800,7 +801,42 @@ On met le caractère `%00` (null byte) pour faire une **troncation d'extension**
 
 
 
-###### Depot de fichier
+
+
+###### 7.4 Reverse SHell
+
+Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et un autre port de connexion si on va sur nore script upload précédement avec l'pload de fichier on peut lui dire de pointer vers notre ip publique et on a donc un revrse shell intégré
+
+![alt text](image.png)
+
+
+###### 7.5 XSS
+
+Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et un autre port de connexion si on va sur nore script upload précédement avec l'pload de fichier on peut lui dire de pointer vers notre ip publique et on a donc un revrse shell intégré
+
+![alt text](image.png)
+
+
+##### 8. Gestion des erreurs
+
+
+###### 8.1 Erreur 
+
+On peut trouver des erreurs PHP et jquery qui nous donnent la version et meme le path de certains fichiers PHP 
+
+Cependnat il n'y a pas d'erreur SQL 
+
+
+
+
+
+##### 9. Cryptographie
+
+- Pas de cryptographie les mdp sont bien hashé nativement par Mysql hormis ceci .
+
+##### 10. Processus métier
+
+###### 10.1 Depot de fichier
 En allant sur la page profile pour éditer on a la possibilité d'upload une image 
 
 ![alt text](src/image-5.png)
@@ -835,11 +871,8 @@ On peut par la suite via notre shell y mettre des commandes :
 
 on peut meme y mettre un reverse shell grace a netcat pour avoir un accès complet avec l'user **www-data**
 
+###### 10.2 Redirection Libre
 
-
-
-
-##### Redirection Libre 
 
 ![alt text](src/image-8.png)
 
@@ -847,56 +880,9 @@ dés qu'on se connecte :
 
 ![alt text](src/image-9.png)
 
-##### 2. Configuration et mécanismes de déploiement
-
-- Présence d’un fichier `.env` accessible précédemment (corrigé)
-- Script de debug `phpinfo.php` laissé temporairement – à supprimer
-
-##### 3. Gestion des identités
-
-- Inscription ouverte sans captcha ni email de validation
-- Gestion des rôles peu granulaire (admin/user)
-
-##### 4. Authentification
-
-- Formulaire de login vulnérable au bruteforce
-- Pas d’authentification multi-facteurs (2FA)
-
-##### 5. Autorisations
-
-- Fonctionnalités admin accessibles à un utilisateur authentifié non privilégié
-- Pas de vérification côté serveur sur certaines actions critiques
-
-##### 6. Gestion des sessions
-
-- Cookies sans attribut `HttpOnly` ni `Secure`
-- Session persiste après déconnexion (Jeton non invalidé)
-
-##### 7. Validation des entrées utilisateurs
-
-- Failles de type XSS stocké sur le champ "biographie"
-- Absence de filtrage serveur – validation uniquement côté client
-
-##### 8. Gestion des erreurs
-
-- Messages d’erreur trop verbeux (`"SQL syntax error near..."`)
-- Stack trace exposée via une mauvaise gestion des exceptions
-
-##### 9. Cryptographie
-
-- Stockage des mots de passe : bcrypt utilisé – conforme
-- Aucune clé d’API dans le front, bon point
-
-##### 10. Processus métier
-
-- Paiement fictif pas implémenté (si applicable)
-- Étapes de validation non protégées (workflow contournable)
-
 ##### 11. Côté client
 
-- JS minifié mais pas obfusqué
-- Accès possible à des fonctionnalités via manipulation DOM
-
+X
 ---
 
 ## 5. ANNEXE
