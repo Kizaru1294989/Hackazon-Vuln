@@ -809,6 +809,17 @@ Après avoir fait deux règle sur mon firewall orange pour ouvrir un port ssh et
 
 ![alt text](image.png)
 
+On a donc libre accès aux fichier du site web on va prendre les plus importants et faire une **Exfiltration de donnée** : on va archiver et déplacer l'achive de le chemin upload la ou on pourra le télécharger drectement depuis le naviguateur . Cette technique est la seule possible car sur le conteneur du site il n'ya ni scp,ssh ou autre outils pour exfiltrer .
+
+![alt text](image-3.png)
+![alt text](image-2.png)
+![alt text](image-4.png)
+![alt text](image-5.png)
+on a également accès au credentials de la DB :
+
+![alt text](image-1.png)
+
+
 
 ###### 7.5 XSS
 
